@@ -16,7 +16,7 @@ pipeline{
         choice(name: 'deploy_to', choices: ['dev', 'qa', 'prod'], description: 'Pick the Environment')
     }
     stages{
-        stage("namespace"){
+        stage("Deployment"){
             steps{
                 script{
                     withAWS(credentials: 'aws-cred', region: 'us-east-1'){
@@ -29,6 +29,29 @@ pipeline{
                     """    
                     }
                 
+                }
+            }
+        }
+
+        stage("rollback"){
+            steps{
+                script{
+                    withAWS(credentials: 'aws-creds', region: 'us-east-1'){
+                        def deploymentStatus = sh(returnStdout: true, script: "kubectl rollout status deployment/catalogue --timeout=30s -n $PROJECT || echo FAILED").trim()
+                        if(deploymentStatus.contains("successfully rolled out")){
+                            echo "deployment is success"
+                        } else {
+                            sh """ 
+                                helm rollback $COMPONENT -n $PROJECT
+                            """
+                        }
+                        def deploymentStatus = sh(returnStdout: true, script: "kubectl rollout status deployment/catalogue --timeout=30s -n $PROJECT || echo FAILED").trim()
+                        if(deploymentStatus.contains("successfully rolled out")){
+                            error "deployment is failed. Rollback is success"
+                        } else{
+                            error "Deployment is Failure, Rollback Failure. Application is not running"
+                        }                       
+                    }
                 }
             }
         }
