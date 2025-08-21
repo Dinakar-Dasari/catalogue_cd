@@ -1,5 +1,5 @@
 deployment:
-  imageURL: dd070/catalogue
+  imageURL: joindevops/catalogue
   imageVersion: IMAGE_VERSION
 hpa:
   maxReplicas: 10
